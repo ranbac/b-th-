@@ -1,0 +1,266 @@
+add_shortcode('cong_cu_tra_han_tu', 'render_tool_tra_han_tu_final');
+
+function render_tool_tra_han_tu_final() {
+    ob_start();
+    
+    // 1. DỮ LIỆU BỘ THỦ (Cấu trúc: "Chữ_Gốc (Chữ_Giản_Thể) - Tên")
+    // Những bộ không có giản thể thì chỉ ghi "Chữ_Gốc - Tên"
+    $radicals = [
+        1 => "一 - Nhất", 2 => "丨 - Cổn", 3 => "丶 - Chủ", 4 => "丿 - Phiệt", 5 => "乙 - Ất", 6 => "亅 - Quyết",
+        7 => "二 - Nhị", 8 => "亠 - Đầu", 9 => "人 - Nhân", 10 => "儿 - Nhi", 11 => "入 - Nhập", 12 => "八 - Bát", 
+        13 => "冂 - Quynh", 14 => "冖 - Mịch", 15 => "冫 - Băng", 16 => "几 - Kỷ", 17 => "凵 - Khảm", 18 => "刀 - Đao", 
+        19 => "力 - Lực", 20 => "勹 - Bao", 21 => "匕 - Chủy", 22 => "匚 - Phương", 23 => "匸 - Hễ", 24 => "十 - Thập", 
+        25 => "卜 - Bốc", 26 => "卩 - Tiết", 27 => "厂 - Hán", 28 => "厶 - Khư", 29 => "又 - Hựu", 30 => "口 - Khẩu", 
+        31 => "囗 - Vi", 32 => "土 - Thổ", 33 => "士 - Sĩ", 34 => "夂 - Tuy", 35 => "夊 - Tuy", 36 => "夕 - Tịch", 
+        37 => "大 - Đại", 38 => "女 - Nữ", 39 => "子 - Tử", 40 => "宀 - Miên", 41 => "寸 - Thốn", 42 => "小 - Tiểu", 
+        43 => "尢 - Uông", 44 => "尸 - Thi", 45 => "屮 - Triệt", 46 => "山 - Sơn", 47 => "巛 - Xuyên", 48 => "工 - Công", 
+        49 => "己 - Kỷ", 50 => "巾 - Cân", 51 => "干 - Can", 52 => "幺 - Yêu", 53 => "广 - Nghiễm", 54 => "廴 - Dẫn", 
+        55 => "廾 - Củng", 56 => "弋 - Dặc", 57 => "弓 - Cung", 58 => "彐 - Ký", 59 => "彡 - Sam", 60 => "彳 - Xích",
+        61 => "心 - Tâm", 62 => "戈 - Qua", 63 => "户 - Hộ", 64 => "手 - Thủ", 65 => "支 - Chi", 66 => "攴 - Phộc", 
+        67 => "文 - Văn", 68 => "斗 - Đẩu", 69 => "斤 - Cân", 70 => "方 - Phương", 71 => "无 - Vô", 72 => "日 - Nhật", 
+        73 => "曰 - Viết", 74 => "月 - Nguyệt", 75 => "木 - Mộc", 76 => "欠 - Khiếm", 77 => "止 - Chỉ", 78 => "歹 - Đãi", 
+        79 => "殳 - Thù", 80 => "毋 - Vô", 81 => "比 - Tỷ", 82 => "毛 - Mao", 83 => "氏 - Thị", 84 => "气 - Khí", 
+        85 => "水 - Thủy", 86 => "火 - Hỏa", 87 => "爪 - Trảo", 88 => "父 - Phụ", 89 => "爻 - Hào", 90 => "爿 - Tường", 
+        91 => "片 - Phiến", 92 => "牙 - Nha", 93 => "牛 - Ngưu", 94 => "犬 - Khuyển", 95 => "玄 - Huyền", 96 => "玉 - Ngọc", 
+        97 => "瓜 - Qua", 98 => "瓦 - Ngõa", 99 => "甘 - Cam", 100 => "生 - Sinh", 101 => "用 - Dụng", 102 => "田 - Điền", 
+        103 => "疋 - Thất", 104 => "疒 - Nạch", 105 => "癶 - Bát", 106 => "白 - Bạch", 107 => "皮 - Bì", 108 => "皿 - Mãnh", 
+        109 => "目 - Mục", 110 => "矛 - Mâu", 111 => "矢 - Thỉ", 112 => "石 - Thạch", 113 => "示 - Thị", 114 => "禸 - Nhựu", 
+        115 => "禾 - Hòa", 116 => "穴 - Huyệt", 117 => "立 - Lập", 118 => "竹 - Trúc", 119 => "米 - Mễ", 
+        120 => "糸 (纟) - Mịch", 
+        121 => "缶 - Phẫu", 122 => "网 - Võng", 123 => "羊 - Dương", 124 => "羽 - Vũ", 125 => "老 - Lão", 126 => "而 - Nhi", 
+        127 => "耒 - Lỗi", 128 => "耳 - Nhĩ", 129 => "聿 - Duật", 130 => "肉 - Nhục", 131 => "臣 - Thần", 132 => "自 - Tự", 
+        133 => "至 - Chí", 134 => "臼 - Cữu", 135 => "舌 - Thiệt", 136 => "舛 - Suyễn", 137 => "舟 - Châu", 138 => "艮 - Cấn", 
+        139 => "色 - Sắc", 140 => "艸 - Thảo", 141 => "虍 - Hổ", 142 => "虫 - Trùng", 143 => "血 - Huyết", 144 => "行 - Hành", 
+        145 => "衣 - Y", 146 => "襾 - Á", 
+        147 => "見 (见) - Kiến", 
+        148 => "角 - Giác", 
+        149 => "言 (讠) - Ngôn", 
+        150 => "谷 - Cốc", 
+        151 => "豆 - Đậu", 152 => "豕 - Thỉ", 153 => "豸 - Trãi", 
+        154 => "貝 (贝) - Bối", 
+        155 => "赤 - Xích", 156 => "走 - Tẩu", 
+        157 => "足 - Túc", 158 => "身 - Thân", 
+        159 => "車 (车) - Xa", 
+        160 => "辛 - Tân", 161 => "辰 - Thần", 
+        162 => "辵 (辶) - Sước", 
+        163 => "邑 - Ấp", 164 => "酉 - Dậu", 165 => "釆 - Biện", 166 => "里 - Lý", 
+        167 => "金 (钅) - Kim", 
+        168 => "長 (长) - Trường", 
+        169 => "門 (门) - Môn", 
+        170 => "阜 - Phụ", 171 => "隶 - Đãi", 172 => "隹 - Chuy", 173 => "雨 - Vũ", 
+        174 => "青 - Thanh", 
+        175 => "非 - Phi", 176 => "面 - Diện", 177 => "革 - Cách", 
+        178 => "韋 (韦) - Vi", 
+        179 => "韭 - Cửu", 180 => "音 - Âm", 
+        181 => "頁 (页) - Hiệt", 
+        182 => "風 (风) - Phong", 
+        183 => "飛 (飞) - Phi", 
+        184 => "食 (饣) - Thực", 
+        185 => "首 - Thủ", 186 => "香 - Hương", 
+        187 => "馬 (马) - Mã", 
+        188 => "骨 - Cốt", 189 => "高 - Cao", 190 => "髟 - Bưu", 
+        191 => "鬥 (斗) - Đấu", 
+        192 => "鬯 - Sưởng", 193 => "鬲 - Cách", 194 => "鬼 - Quỷ", 
+        195 => "魚 (鱼) - Ngư", 
+        196 => "鳥 (鸟) - Điểu", 
+        197 => "鹵 - Lỗ", 
+        198 => "鹿 - Lộc", 
+        199 => "麥 (麦) - Mạch", 
+        200 => "麻 - Ma", 201 => "黃 - Hoàng", 202 => "黍 - Thử", 203 => "黑 - Hắc", 204 => "黹 - Chỉ", 
+        205 => "黽 - Mãnh", 206 => "鼎 - Đỉnh", 207 => "鼓 - Cổ", 208 => "鼠 - Thử", 209 => "鼻 - Tị", 
+        210 => "齊 (齐) - Tề", 
+        211 => "齒 (齿) - Xỉ", 
+        212 => "龍 (龙) - Long", 
+        213 => "龜 (龟) - Quy", 
+        214 => "龠 - Dược"
+    ];
+
+    // CẤU HÌNH NHÓM NÉT
+    $stroke_ranges = [
+        1 => [1, 6], 2 => [7, 29], 3 => [30, 60], 4 => [61, 94], 
+        5 => [95, 117], 6 => [118, 146], 7 => [147, 166], 8 => [167, 175],
+        9 => [176, 186], 10 => [187, 194], 11 => [195, 200], 12 => [201, 204],
+        13 => [205, 208], 14 => [209, 210], 15 => [211, 211], 16 => [212, 213], 17 => [214, 214]
+    ];
+    ?>
+    
+    <style>
+        .hl-wrapper { max-width: 900px; margin: 0 auto; font-family: sans-serif; }
+        
+        /* Input & Sticky Bar */
+        .hl-sticky-bar { 
+            position: sticky; top: 10px; z-index: 100; 
+            background: #fff; padding: 15px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px;
+            display: flex; gap: 10px; align-items: center; margin-bottom: 30px; border: 1px solid #ddd;
+        }
+        .hl-selected-info { font-weight: bold; color: #d32f2f; flex-grow: 1; font-size: 16px; }
+        .hl-input-strokes { width: 150px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        /* Nhóm nét */
+        .hl-group-header { 
+            display: flex; align-items: baseline; margin-top: 40px; margin-bottom: 15px; 
+            border-bottom: 3px solid #eee; padding-bottom: 5px;
+        }
+        .hl-group-num { 
+            font-size: 50px; font-weight: 900; color: #e0e0e0; 
+            line-height: 0.8; margin-right: 10px; font-family: Arial, sans-serif;
+            text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff; 
+        }
+        .hl-group-text { font-size: 14px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* Grid bộ thủ */
+        .hl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+        
+        .hl-radical-item { 
+            border: 1px solid #e0e0e0; background: #fff; border-radius: 6px; 
+            padding: 8px 4px; text-align: center; cursor: pointer; transition: 0.2s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .hl-radical-item:hover, .hl-radical-item.active { 
+            border-color: #d32f2f; background: #fff5f5; transform: scale(1.05); 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+        }
+        
+        .hl-rad-char { font-size: 24px; font-weight: bold; color: #333; line-height: 1.2; }
+        .hl-rad-simp { font-size: 16px; color: #d32f2f; font-weight: bold; margin-bottom: 2px; } /* Style cho chữ giản thể */
+        .hl-rad-name { font-size: 11px; color: #666; margin-top: 2px; }
+
+        /* Kết quả */
+        #hl-results-container { margin-top: 20px; }
+        .hl-result-card { 
+            display: inline-block; width: 60px; height: 60px; line-height: 60px; 
+            text-align: center; border: 1px solid #eee; margin: 5px; border-radius: 4px;
+            font-size: 28px; background: #fff; cursor: pointer;
+        }
+        .hl-result-card:hover { background: #333; color: white; }
+    </style>
+
+    <div class="hl-wrapper">
+        <div class="hl-sticky-bar">
+            <div class="hl-selected-info" id="hl-status">Vui lòng chọn bộ thủ bên dưới 👇</div>
+            <input type="number" id="hl-strokes-input" class="hl-input-strokes" placeholder="Số nét còn lại" oninput="reFilterHanzi()">
+        </div>
+
+        <div id="hl-results-container" style="display:none; margin-bottom: 30px; border: 2px dashed #d32f2f; padding: 20px; border-radius: 8px; background: #fffaf0;">
+            <h4 style="margin-top:0">Kết quả tìm kiếm:</h4>
+            <div id="hl-result-list"></div>
+        </div>
+
+        <div id="hl-radical-list">
+            <?php 
+            foreach ($stroke_ranges as $strokes => $range) {
+                echo '<div class="hl-group-header">';
+                echo '<span class="hl-group-num">' . $strokes . '</span>';
+                echo '<span class="hl-group-text">NÉT</span>';
+                echo '</div>';
+                
+                echo '<div class="hl-grid">';
+                for ($id = $range[0]; $id <= $range[1]; $id++) {
+                    if (isset($radicals[$id])) {
+                        $raw = $radicals[$id]; // VD: "言 (讠) - Ngôn" hoặc "一 - Nhất"
+                        
+                        // Tách tên ra trước (phần sau dấu "-")
+                        $parts = explode(' - ', $raw);
+                        $chars_part = $parts[0]; // "言 (讠)"
+                        $name = isset($parts[1]) ? $parts[1] : '';
+
+                        // Kiểm tra xem có giản thể trong ngoặc không
+                        $main_char = $chars_part;
+                        $simp_char = '';
+
+                        if (strpos($chars_part, '(') !== false) {
+                            // Dùng regex lấy chữ trong ngoặc
+                            if (preg_match('/^(.*) \((.*)\)$/', $chars_part, $matches)) {
+                                $main_char = $matches[1]; // Chữ gốc
+                                $simp_char = $matches[2]; // Chữ giản thể
+                            }
+                        }
+
+                        echo '<div class="hl-radical-item" onclick="selectRadical(this, '.$id.', \''. addslashes($raw) .'\')">';
+                        
+                        // Hiển thị chữ Gốc
+                        echo '<div class="hl-rad-char">'.$main_char.'</div>';
+                        
+                        // Hiển thị chữ Giản thể (nếu có)
+                        if ($simp_char) {
+                            echo '<div class="hl-rad-simp">('.$simp_char.')</div>';
+                        }
+                        
+                        echo '<div class="hl-rad-name">'.$name.'</div>';
+                        echo '</div>';
+                    }
+                }
+                echo '</div>';
+            }
+            ?>
+        </div>
+        <p id="hl-loading" style="display:none; text-align:center;">Đang tải dữ liệu...</p>
+    </div>
+
+    <script>
+    let hanziDb = [];
+    let currentRadicalId = null;
+
+    // ============================================
+    // CẤU HÌNH ĐƯỜNG DẪN WEB CỦA BẠN
+    // ============================================
+    const urlPattern = '/?s='; 
+    // const urlPattern = '/tu-dien/';
+    // ============================================
+
+    window.addEventListener('load', function(){
+        fetch('/wp-content/uploads/hantu_data.json')
+            .then(r => r.json())
+            .then(data => { hanziDb = data; })
+            .catch(e => console.error("Lỗi tải JSON:", e));
+    });
+
+    function selectRadical(el, id, rawName) {
+        document.querySelectorAll('.hl-radical-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        currentRadicalId = id;
+        
+        // Làm sạch chuỗi rawName để hiển thị đẹp trên thanh status
+        document.getElementById('hl-status').innerText = `Đang tra: Bộ ${id} [${rawName}]`;
+        reFilterHanzi();
+    }
+
+    function reFilterHanzi() {
+        if (!currentRadicalId || hanziDb.length === 0) return;
+
+        const remainStrokesStr = document.getElementById('hl-strokes-input').value;
+        const resultContainer = document.getElementById('hl-results-container');
+        const resultList = document.getElementById('hl-result-list');
+
+        resultList.innerHTML = 'Đang lọc...';
+        resultContainer.style.display = 'block';
+
+        const results = hanziDb.filter(item => {
+            const matchRad = item.radical === currentRadicalId;
+            const matchStr = remainStrokesStr === "" ? true : item.remain_strokes === parseInt(remainStrokesStr);
+            return matchRad && matchStr;
+        });
+
+        resultList.innerHTML = '';
+        if (results.length === 0) {
+            resultList.innerHTML = '<p>Không tìm thấy chữ nào.</p>';
+            return;
+        }
+
+        results.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'hl-result-card';
+            div.innerText = item.char;
+            div.title = `Tra cứu chữ: ${item.char}`;
+            div.onclick = () => {
+                const finalUrl = urlPattern + item.char;
+                window.open(finalUrl, '_blank');
+            };
+            resultList.appendChild(div);
+        });
+    }
+    </script>
+    <?php
+    return ob_get_clean();
+}
