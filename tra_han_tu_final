@@ -1,10 +1,9 @@
-add_shortcode('cong_cu_tra_han_tu', 'render_tool_tra_han_tu_final');
+add_shortcode('cong_cu_tra_han_tu', 'render_tool_tra_han_tu_final_v11');
 
-function render_tool_tra_han_tu_final() {
+function render_tool_tra_han_tu_final_v11() {
     ob_start();
     
-    // 1. DỮ LIỆU BỘ THỦ (Cấu trúc: "Chữ_Gốc (Chữ_Giản_Thể) - Tên")
-    // Những bộ không có giản thể thì chỉ ghi "Chữ_Gốc - Tên"
+    // 1. DỮ LIỆU BỘ THỦ (Giữ nguyên)
     $radicals = [
         1 => "一 - Nhất", 2 => "丨 - Cổn", 3 => "丶 - Chủ", 4 => "丿 - Phiệt", 5 => "乙 - Ất", 6 => "亅 - Quyết",
         7 => "二 - Nhị", 8 => "亠 - Đầu", 9 => "人 - Nhân", 10 => "儿 - Nhi", 11 => "入 - Nhập", 12 => "八 - Bát", 
@@ -75,7 +74,6 @@ function render_tool_tra_han_tu_final() {
         214 => "龠 - Dược"
     ];
 
-    // CẤU HÌNH NHÓM NÉT
     $stroke_ranges = [
         1 => [1, 6], 2 => [7, 29], 3 => [30, 60], 4 => [61, 94], 
         5 => [95, 117], 6 => [118, 146], 7 => [147, 166], 8 => [167, 175],
@@ -85,108 +83,114 @@ function render_tool_tra_han_tu_final() {
     ?>
     
     <style>
-        .hl-wrapper { max-width: 900px; margin: 0 auto; font-family: sans-serif; }
-        
-        /* Input & Sticky Bar */
-        .hl-sticky-bar { 
-            position: sticky; top: 10px; z-index: 100; 
-            background: #fff; padding: 15px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px;
-            display: flex; gap: 10px; align-items: center; margin-bottom: 30px; border: 1px solid #ddd;
-        }
-        .hl-selected-info { font-weight: bold; color: #d32f2f; flex-grow: 1; font-size: 16px; }
-        .hl-input-strokes { width: 150px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        
-        /* Nhóm nét */
-        .hl-group-header { 
-            display: flex; align-items: baseline; margin-top: 40px; margin-bottom: 15px; 
-            border-bottom: 3px solid #eee; padding-bottom: 5px;
-        }
-        .hl-group-num { 
-            font-size: 50px; font-weight: 900; color: #e0e0e0; 
-            line-height: 0.8; margin-right: 10px; font-family: Arial, sans-serif;
-            text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff; 
-        }
-        .hl-group-text { font-size: 14px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 2px; }
+        .hl-wrapper { max-width: 900px; margin: 0 auto; font-family: sans-serif; position: relative; }
+        .hl-flex-container { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; position: relative; }
 
-        /* Grid bộ thủ */
-        .hl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+        /* PANEL CÔNG CỤ */
+        #hl-floating-panel {
+            display: none; width: 100%; flex-basis: 100%; 
+            background: #fffaf0; border: 2px dashed #d32f2f;
+            border-radius: 8px; padding: 15px; margin: 10px 0;
+            box-sizing: border-box; animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .hl-panel-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e0e0e0; }
+        .hl-selected-info { font-weight: bold; color: #d32f2f; font-size: 16px; }
         
+        .hl-input-strokes { 
+            width: 80px; padding: 8px; border: 1px solid #aaa !important; border-radius: 4px; 
+            background-color: #ffffff !important; color: #000000 !important; 
+            font-weight: bold; text-align: center; font-size: 16px;
+        }
+        .hl-input-strokes:focus { outline: 2px solid #d32f2f; border-color: #d32f2f !important; }
+
+        /* NHÓM NÉT */
+        .hl-group-header { display: flex; align-items: baseline; margin-top: 30px; margin-bottom: 10px; border-bottom: 3px solid #eee; padding-bottom: 5px; width: 100%; }
+        .hl-group-num { font-size: 40px; font-weight: 900; color: #e0e0e0; margin-right: 10px; }
+        
+        /* BỘ THỦ ITEM */
         .hl-radical-item { 
-            border: 1px solid #e0e0e0; background: #fff; border-radius: 6px; 
+            width: 80px; border: 1px solid #e0e0e0; background: #fff; border-radius: 6px; 
             padding: 8px 4px; text-align: center; cursor: pointer; transition: 0.2s;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .hl-radical-item:hover, .hl-radical-item.active { 
-            border-color: #d32f2f; background: #fff5f5; transform: scale(1.05); 
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+            border-color: #d32f2f; background: #fff5f5; box-shadow: 0 4px 8px rgba(0,0,0,0.15); transform: scale(1.05); z-index: 10;
         }
-        
-        .hl-rad-char { font-size: 24px; font-weight: bold; color: #333; line-height: 1.2; }
-        .hl-rad-simp { font-size: 16px; color: #d32f2f; font-weight: bold; margin-bottom: 2px; } /* Style cho chữ giản thể */
+        .hl-radical-item.active::after {
+            content: ""; position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%);
+            border-width: 10px 10px 0; border-style: solid; border-color: #d32f2f transparent transparent transparent; z-index: 11;
+        }
+        .hl-rad-char { font-size: 24px; font-weight: bold; color: #333; }
+        .hl-rad-simp { font-size: 16px; color: #d32f2f; margin-bottom: 2px; }
         .hl-rad-name { font-size: 11px; color: #666; margin-top: 2px; }
 
-        /* Kết quả */
-        #hl-results-container { margin-top: 20px; }
+        /* KẾT QUẢ */
         .hl-result-card { 
-            display: inline-block; width: 60px; height: 60px; line-height: 60px; 
-            text-align: center; border: 1px solid #eee; margin: 5px; border-radius: 4px;
-            font-size: 28px; background: #fff; cursor: pointer;
+            display: inline-block; width: 50px; height: 50px; line-height: 50px; 
+            text-align: center; border: 1px solid #eee; margin: 4px; border-radius: 4px;
+            font-size: 24px; background: #fff; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .hl-result-card:hover { background: #333; color: white; }
+        
+        /* === FULL SCREEN OVERLAY (KHÔNG HEADER) === */
+        #hl-fs-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #ffffff; 
+            z-index: 2147483647; /* Đè lên tất cả */
+            flex-direction: column;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        /* Nút Đóng Trôi Nổi (Floating Close Button) */
+        .hl-fs-floating-close {
+            position: absolute; top: 15px; right: 15px; /* Góc trên bên phải */
+            width: 40px; height: 40px;
+            background: rgba(0, 0, 0, 0.6); /* Nền đen mờ */
+            color: #fff; border: none; border-radius: 50%;
+            font-size: 24px; line-height: 40px; text-align: center;
+            cursor: pointer; z-index: 2147483648; /* Cao hơn overlay */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .hl-fs-floating-close:hover { background: rgba(211, 47, 47, 0.9); }
+
+        #hl-fs-iframe { flex-grow: 1; width: 100%; height: 100%; border: none; background: #fff; }
+        #hl-fs-loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 16px; color: #666; display: none; }
+
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
     </style>
 
     <div class="hl-wrapper">
-        <div class="hl-sticky-bar">
-            <div class="hl-selected-info" id="hl-status">Vui lòng chọn bộ thủ bên dưới 👇</div>
-            <input type="number" id="hl-strokes-input" class="hl-input-strokes" placeholder="Số nét còn lại" oninput="reFilterHanzi()">
-        </div>
-
-        <div id="hl-results-container" style="display:none; margin-bottom: 30px; border: 2px dashed #d32f2f; padding: 20px; border-radius: 8px; background: #fffaf0;">
-            <h4 style="margin-top:0">Kết quả tìm kiếm:</h4>
+        <div id="hl-floating-panel">
+            <div class="hl-panel-row">
+                <div class="hl-selected-info" id="hl-status">Đang chọn...</div>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <span style="font-size:12px; color:#666;">Số nét còn lại:</span>
+                    <input type="number" id="hl-strokes-input" class="hl-input-strokes" value="0" oninput="reFilterHanzi()">
+                </div>
+            </div>
             <div id="hl-result-list"></div>
         </div>
-
         <div id="hl-radical-list">
             <?php 
             foreach ($stroke_ranges as $strokes => $range) {
-                echo '<div class="hl-group-header">';
-                echo '<span class="hl-group-num">' . $strokes . '</span>';
-                echo '<span class="hl-group-text">NÉT</span>';
-                echo '</div>';
-                
-                echo '<div class="hl-grid">';
+                echo '<div class="hl-group-header"><span class="hl-group-num">'.$strokes.'</span><span>NÉT</span></div>';
+                echo '<div class="hl-flex-container">';
                 for ($id = $range[0]; $id <= $range[1]; $id++) {
                     if (isset($radicals[$id])) {
-                        $raw = $radicals[$id]; // VD: "言 (讠) - Ngôn" hoặc "一 - Nhất"
-                        
-                        // Tách tên ra trước (phần sau dấu "-")
+                        $raw = $radicals[$id];
                         $parts = explode(' - ', $raw);
-                        $chars_part = $parts[0]; // "言 (讠)"
+                        $chars_part = $parts[0];
                         $name = isset($parts[1]) ? $parts[1] : '';
-
-                        // Kiểm tra xem có giản thể trong ngoặc không
-                        $main_char = $chars_part;
-                        $simp_char = '';
-
-                        if (strpos($chars_part, '(') !== false) {
-                            // Dùng regex lấy chữ trong ngoặc
-                            if (preg_match('/^(.*) \((.*)\)$/', $chars_part, $matches)) {
-                                $main_char = $matches[1]; // Chữ gốc
-                                $simp_char = $matches[2]; // Chữ giản thể
-                            }
+                        $main_char = $chars_part; $simp_char = '';
+                        if (strpos($chars_part, '(') !== false && preg_match('/^(.*) \((.*)\)$/', $chars_part, $matches)) {
+                            $main_char = $matches[1]; $simp_char = $matches[2];
                         }
-
-                        echo '<div class="hl-radical-item" onclick="selectRadical(this, '.$id.', \''. addslashes($raw) .'\')">';
-                        
-                        // Hiển thị chữ Gốc
+                        echo '<div class="hl-radical-item item-radical" onclick="handleRadicalClick(this, '.$id.', \''. addslashes($raw) .'\')">';
                         echo '<div class="hl-rad-char">'.$main_char.'</div>';
-                        
-                        // Hiển thị chữ Giản thể (nếu có)
-                        if ($simp_char) {
-                            echo '<div class="hl-rad-simp">('.$simp_char.')</div>';
-                        }
-                        
+                        if ($simp_char) echo '<div class="hl-rad-simp">('.$simp_char.')</div>';
                         echo '<div class="hl-rad-name">'.$name.'</div>';
                         echo '</div>';
                     }
@@ -195,70 +199,137 @@ function render_tool_tra_han_tu_final() {
             }
             ?>
         </div>
-        <p id="hl-loading" style="display:none; text-align:center;">Đang tải dữ liệu...</p>
+    </div>
+
+    <div id="hl-fs-overlay">
+        <button class="hl-fs-floating-close" onclick="closeOverlay()">
+            &times; </button>
+        
+        <div id="hl-fs-loader">Đang tải...</div>
+        <iframe id="hl-fs-iframe" src=""></iframe>
     </div>
 
     <script>
     let hanziDb = [];
     let currentRadicalId = null;
-
-    // ============================================
-    // CẤU HÌNH ĐƯỜNG DẪN WEB CỦA BẠN
-    // ============================================
     const urlPattern = '/?s='; 
-    // const urlPattern = '/tu-dien/';
-    // ============================================
 
     window.addEventListener('load', function(){
+        // 1. CHUYỂN OVERLAY RA BODY ĐỂ TRÁNH Z-INDEX LỖI
+        const overlay = document.getElementById('hl-fs-overlay');
+        if (overlay) { document.body.appendChild(overlay); }
+
         fetch('/wp-content/uploads/hantu_data.json')
             .then(r => r.json())
             .then(data => { hanziDb = data; })
             .catch(e => console.error("Lỗi tải JSON:", e));
     });
 
-    function selectRadical(el, id, rawName) {
+    function handleRadicalClick(element, id, rawName) {
         document.querySelectorAll('.hl-radical-item').forEach(i => i.classList.remove('active'));
-        el.classList.add('active');
+        element.classList.add('active');
         currentRadicalId = id;
-        
-        // Làm sạch chuỗi rawName để hiển thị đẹp trên thanh status
-        document.getElementById('hl-status').innerText = `Đang tra: Bộ ${id} [${rawName}]`;
+        document.getElementById('hl-status').innerText = `Bộ ${id}: ${rawName}`;
+        document.getElementById('hl-strokes-input').value = '0'; 
+        movePanelToRow(element);
         reFilterHanzi();
+    }
+
+    function movePanelToRow(clickedItem) {
+        const panel = document.getElementById('hl-floating-panel');
+        const container = clickedItem.parentNode; 
+        const items = Array.from(container.children).filter(c => c.classList.contains('item-radical'));
+        const clickedRect = clickedItem.getBoundingClientRect();
+        let lastItemInRow = clickedItem;
+        for (let i = items.indexOf(clickedItem); i < items.length; i++) {
+            const currentItem = items[i];
+            const currentRect = currentItem.getBoundingClientRect();
+            if (Math.abs(currentRect.top - clickedRect.top) <= 5) {
+                lastItemInRow = currentItem;
+            } else { break; }
+        }
+        if (lastItemInRow.nextSibling) {
+            container.insertBefore(panel, lastItemInRow.nextSibling);
+        } else {
+            container.appendChild(panel);
+        }
+        panel.style.display = 'block';
     }
 
     function reFilterHanzi() {
         if (!currentRadicalId || hanziDb.length === 0) return;
-
-        const remainStrokesStr = document.getElementById('hl-strokes-input').value;
-        const resultContainer = document.getElementById('hl-results-container');
+        const remainStrokesVal = document.getElementById('hl-strokes-input').value;
         const resultList = document.getElementById('hl-result-list');
-
-        resultList.innerHTML = 'Đang lọc...';
-        resultContainer.style.display = 'block';
-
+        resultList.innerHTML = '...';
         const results = hanziDb.filter(item => {
             const matchRad = item.radical === currentRadicalId;
-            const matchStr = remainStrokesStr === "" ? true : item.remain_strokes === parseInt(remainStrokesStr);
+            let matchStr = true;
+            if (remainStrokesVal !== "") {
+                matchStr = (item.remain_strokes === parseInt(remainStrokesVal));
+            }
             return matchRad && matchStr;
         });
-
         resultList.innerHTML = '';
         if (results.length === 0) {
-            resultList.innerHTML = '<p>Không tìm thấy chữ nào.</p>';
+            resultList.innerHTML = '<span style="color:#666; font-style:italic;">Không tìm thấy chữ nào.</span>';
             return;
         }
-
         results.forEach(item => {
             const div = document.createElement('div');
             div.className = 'hl-result-card';
             div.innerText = item.char;
-            div.title = `Tra cứu chữ: ${item.char}`;
-            div.onclick = () => {
-                const finalUrl = urlPattern + item.char;
-                window.open(finalUrl, '_blank');
-            };
+            div.onclick = function() { openOverlay(urlPattern + item.char); };
             resultList.appendChild(div);
         });
+    }
+
+    function openOverlay(url) {
+        const overlay = document.getElementById('hl-fs-overlay');
+        const iframe = document.getElementById('hl-fs-iframe');
+        const loader = document.getElementById('hl-fs-loader');
+
+        iframe.style.opacity = '0';
+        loader.style.display = 'block';
+        iframe.src = url;
+
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        // LOGIC ẨN HEADER BÊN TRONG IFRAME (Nếu cùng domain)
+        iframe.onload = function() {
+            loader.style.display = 'none';
+            iframe.style.opacity = '1';
+            
+            try {
+                // Thử truy cập vào document bên trong iframe
+                const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Tạo thẻ style để ẩn các class Header phổ biến của WordPress
+                const style = innerDoc.createElement('style');
+                style.innerHTML = `
+                    header, #masthead, .site-header, .main-navigation, .navbar, #header {
+                        display: none !important;
+                    }
+                    /* Nếu cần ẩn thêm footer */
+                    /* footer, #colophon, .site-footer { display: none !important; } */
+                    
+                    /* Padding body nếu cần */
+                    body { padding-top: 0 !important; margin-top: 0 !important; }
+                `;
+                innerDoc.head.appendChild(style);
+            } catch(e) {
+                // Nếu khác domain thì không can thiệp được (Security Policy), bỏ qua
+                console.log("Không thể can thiệp CSS iframe do khác domain (CORS).");
+            }
+        };
+    }
+
+    function closeOverlay() {
+        const overlay = document.getElementById('hl-fs-overlay');
+        const iframe = document.getElementById('hl-fs-iframe');
+        overlay.style.display = 'none';
+        iframe.src = '';
+        document.body.style.overflow = 'auto';
     }
     </script>
     <?php
