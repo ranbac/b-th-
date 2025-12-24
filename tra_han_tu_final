@@ -1,9 +1,9 @@
-add_shortcode('cong_cu_tra_han_tu', 'render_tool_tra_han_tu_final_v11');
+add_shortcode('cong_cu_tra_han_tu', 'render_tool_tra_han_tu_final_v14_puzzle');
 
-function render_tool_tra_han_tu_final_v11() {
+function render_tool_tra_han_tu_final_v14_puzzle() {
     ob_start();
     
-    // 1. DỮ LIỆU BỘ THỦ (Giữ nguyên)
+    // 1. DỮ LIỆU BỘ THỦ (GIỮ NGUYÊN KHÔNG ĐỔI)
     $radicals = [
         1 => "一 - Nhất", 2 => "丨 - Cổn", 3 => "丶 - Chủ", 4 => "丿 - Phiệt", 5 => "乙 - Ất", 6 => "亅 - Quyết",
         7 => "二 - Nhị", 8 => "亠 - Đầu", 9 => "人 - Nhân", 10 => "儿 - Nhi", 11 => "入 - Nhập", 12 => "八 - Bát", 
@@ -83,10 +83,56 @@ function render_tool_tra_han_tu_final_v11() {
     ?>
     
     <style>
-        .hl-wrapper { max-width: 900px; margin: 0 auto; font-family: sans-serif; position: relative; }
+        /* === 1. STYLE ICON LAUNCHER (CHỈ ICON, KHÔNG NỀN) === */
+        .hl-launcher-btn {
+            background: transparent;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+        .hl-launcher-btn:hover { transform: scale(1.1); }
+        
+        /* --- ĐÃ CHỈNH SỬA PHẦN NÀY --- */
+        .hl-launcher-icon-svg {
+            width: 40px; height: 40px;
+            fill: transparent; /* Nền trong suốt */
+            stroke: #808080;   /* Viền xám */
+            stroke-width: 1.5px; /* Độ dày viền */
+            display: block;
+        }
+        /* ----------------------------- */
+
+        /* === 2. STYLE TOOL MODAL (LỚP PHỦ CHÍNH) === */
+        #hl-tool-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #f4f4f4; z-index: 10000; /* Cao nhưng thấp hơn overlay kết quả */
+            flex-direction: column; opacity: 0; transition: opacity 0.3s ease;
+        }
+        #hl-tool-modal.open { opacity: 1; }
+        
+        .hl-modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: white; border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0;
+        }
+        .hl-modal-title { font-size: 18px; font-weight: bold; color: #d32f2f; }
+        .hl-close-tool-btn {
+            background: none; border: none; font-size: 28px; color: #666; cursor: pointer; line-height: 1;
+        }
+        .hl-close-tool-btn:hover { color: #d32f2f; }
+
+        .hl-modal-scroll-area {
+            flex-grow: 1; overflow-y: auto; padding: 20px;
+            -webkit-overflow-scrolling: touch; 
+        }
+
+        /* === 3. STYLE GIAO DIỆN BỘ THỦ === */
+        .hl-wrapper { max-width: 1000px; margin: 0 auto; font-family: sans-serif; position: relative; }
         .hl-flex-container { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; position: relative; }
 
-        /* PANEL CÔNG CỤ */
+        /* PANEL CÔNG CỤ (NỔI) */
         #hl-floating-panel {
             display: none; width: 100%; flex-basis: 100%; 
             background: #fffaf0; border: 2px dashed #d32f2f;
@@ -106,8 +152,8 @@ function render_tool_tra_han_tu_final_v11() {
         .hl-input-strokes:focus { outline: 2px solid #d32f2f; border-color: #d32f2f !important; }
 
         /* NHÓM NÉT */
-        .hl-group-header { display: flex; align-items: baseline; margin-top: 30px; margin-bottom: 10px; border-bottom: 3px solid #eee; padding-bottom: 5px; width: 100%; }
-        .hl-group-num { font-size: 40px; font-weight: 900; color: #e0e0e0; margin-right: 10px; }
+        .hl-group-header { display: flex; align-items: baseline; margin-top: 20px; margin-bottom: 10px; border-bottom: 3px solid #eee; padding-bottom: 5px; width: 100%; }
+        .hl-group-num { font-size: 32px; font-weight: 900; color: #e0e0e0; margin-right: 10px; }
         
         /* BỘ THỦ ITEM */
         .hl-radical-item { 
@@ -134,7 +180,7 @@ function render_tool_tra_han_tu_final_v11() {
         }
         .hl-result-card:hover { background: #333; color: white; }
         
-        /* === FULL SCREEN OVERLAY (KHÔNG HEADER) === */
+        /* === 4. FULL SCREEN OVERLAY KẾT QUẢ (IFRAME) === */
         #hl-fs-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #ffffff; 
@@ -143,14 +189,13 @@ function render_tool_tra_han_tu_final_v11() {
             animation: slideInRight 0.3s ease-out;
         }
 
-        /* Nút Đóng Trôi Nổi (Floating Close Button) */
         .hl-fs-floating-close {
-            position: absolute; top: 15px; right: 15px; /* Góc trên bên phải */
+            position: absolute; top: 15px; right: 15px;
             width: 40px; height: 40px;
-            background: rgba(0, 0, 0, 0.6); /* Nền đen mờ */
+            background: rgba(0, 0, 0, 0.6);
             color: #fff; border: none; border-radius: 50%;
             font-size: 24px; line-height: 40px; text-align: center;
-            cursor: pointer; z-index: 2147483648; /* Cao hơn overlay */
+            cursor: pointer; z-index: 2147483648;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             display: flex; justify-content: center; align-items: center;
         }
@@ -162,42 +207,57 @@ function render_tool_tra_han_tu_final_v11() {
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
     </style>
 
-    <div class="hl-wrapper">
-        <div id="hl-floating-panel">
-            <div class="hl-panel-row">
-                <div class="hl-selected-info" id="hl-status">Đang chọn...</div>
-                <div style="display:flex; align-items:center; gap:5px;">
-                    <span style="font-size:12px; color:#666;">Số nét còn lại:</span>
-                    <input type="number" id="hl-strokes-input" class="hl-input-strokes" value="0" oninput="reFilterHanzi()">
-                </div>
-            </div>
-            <div id="hl-result-list"></div>
+    <button class="hl-launcher-btn" onclick="toggleToolModal(true)" title="Tra bộ thủ">
+        <svg class="hl-launcher-icon-svg" viewBox="0 0 24 24">
+            <path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.38 0 2.5 1.12 2.5 2.5s-1.12 2.5-2.5 2.5H2v4c0 1.1.9 2 2 2h4v-1.5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5V22h4c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"/>
+        </svg>
+    </button>
+
+    <div id="hl-tool-modal">
+        <div class="hl-modal-header">
+            <div class="hl-modal-title">Từ Điển Bộ Thủ</div>
+            <button class="hl-close-tool-btn" onclick="toggleToolModal(false)">&times;</button>
         </div>
-        <div id="hl-radical-list">
-            <?php 
-            foreach ($stroke_ranges as $strokes => $range) {
-                echo '<div class="hl-group-header"><span class="hl-group-num">'.$strokes.'</span><span>NÉT</span></div>';
-                echo '<div class="hl-flex-container">';
-                for ($id = $range[0]; $id <= $range[1]; $id++) {
-                    if (isset($radicals[$id])) {
-                        $raw = $radicals[$id];
-                        $parts = explode(' - ', $raw);
-                        $chars_part = $parts[0];
-                        $name = isset($parts[1]) ? $parts[1] : '';
-                        $main_char = $chars_part; $simp_char = '';
-                        if (strpos($chars_part, '(') !== false && preg_match('/^(.*) \((.*)\)$/', $chars_part, $matches)) {
-                            $main_char = $matches[1]; $simp_char = $matches[2];
+        <div class="hl-modal-scroll-area">
+            <div class="hl-wrapper">
+                <div id="hl-floating-panel">
+                    <div class="hl-panel-row">
+                        <div class="hl-selected-info" id="hl-status">Đang chọn...</div>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <span style="font-size:12px; color:#666;">Số nét còn lại:</span>
+                            <input type="number" id="hl-strokes-input" class="hl-input-strokes" value="0" oninput="reFilterHanzi()">
+                        </div>
+                    </div>
+                    <div id="hl-result-list"></div>
+                </div>
+
+                <div id="hl-radical-list">
+                    <?php 
+                    foreach ($stroke_ranges as $strokes => $range) {
+                        echo '<div class="hl-group-header"><span class="hl-group-num">'.$strokes.'</span><span>NÉT</span></div>';
+                        echo '<div class="hl-flex-container">';
+                        for ($id = $range[0]; $id <= $range[1]; $id++) {
+                            if (isset($radicals[$id])) {
+                                $raw = $radicals[$id];
+                                $parts = explode(' - ', $raw);
+                                $chars_part = $parts[0];
+                                $name = isset($parts[1]) ? $parts[1] : '';
+                                $main_char = $chars_part; $simp_char = '';
+                                if (strpos($chars_part, '(') !== false && preg_match('/^(.*) \((.*)\)$/', $chars_part, $matches)) {
+                                    $main_char = $matches[1]; $simp_char = $matches[2];
+                                }
+                                echo '<div class="hl-radical-item item-radical" onclick="handleRadicalClick(this, '.$id.', \''. addslashes($raw) .'\')">';
+                                echo '<div class="hl-rad-char">'.$main_char.'</div>';
+                                if ($simp_char) echo '<div class="hl-rad-simp">('.$simp_char.')</div>';
+                                echo '<div class="hl-rad-name">'.$name.'</div>';
+                                echo '</div>';
+                            }
                         }
-                        echo '<div class="hl-radical-item item-radical" onclick="handleRadicalClick(this, '.$id.', \''. addslashes($raw) .'\')">';
-                        echo '<div class="hl-rad-char">'.$main_char.'</div>';
-                        if ($simp_char) echo '<div class="hl-rad-simp">('.$simp_char.')</div>';
-                        echo '<div class="hl-rad-name">'.$name.'</div>';
                         echo '</div>';
                     }
-                }
-                echo '</div>';
-            }
-            ?>
+                    ?>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -210,13 +270,16 @@ function render_tool_tra_han_tu_final_v11() {
     </div>
 
     <script>
+    // (PHẦN SCRIPT GIỮ NGUYÊN KHÔNG ĐỔI)
     let hanziDb = [];
     let currentRadicalId = null;
     const urlPattern = '/?s='; 
 
     window.addEventListener('load', function(){
-        // 1. CHUYỂN OVERLAY RA BODY ĐỂ TRÁNH Z-INDEX LỖI
+        // Di chuyển Modal ra body
+        const toolModal = document.getElementById('hl-tool-modal');
         const overlay = document.getElementById('hl-fs-overlay');
+        if (toolModal) { document.body.appendChild(toolModal); }
         if (overlay) { document.body.appendChild(overlay); }
 
         fetch('/wp-content/uploads/hantu_data.json')
@@ -224,6 +287,19 @@ function render_tool_tra_han_tu_final_v11() {
             .then(data => { hanziDb = data; })
             .catch(e => console.error("Lỗi tải JSON:", e));
     });
+
+    function toggleToolModal(show) {
+        const modal = document.getElementById('hl-tool-modal');
+        if (show) {
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.classList.add('open'); }, 10);
+            document.body.style.overflow = 'hidden'; 
+        } else {
+            modal.classList.remove('open');
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
+            document.body.style.overflow = 'auto'; 
+        }
+    }
 
     function handleRadicalClick(element, id, rawName) {
         document.querySelectorAll('.hl-radical-item').forEach(i => i.classList.remove('active'));
@@ -241,6 +317,7 @@ function render_tool_tra_han_tu_final_v11() {
         const items = Array.from(container.children).filter(c => c.classList.contains('item-radical'));
         const clickedRect = clickedItem.getBoundingClientRect();
         let lastItemInRow = clickedItem;
+        
         for (let i = items.indexOf(clickedItem); i < items.length; i++) {
             const currentItem = items[i];
             const currentRect = currentItem.getBoundingClientRect();
@@ -248,6 +325,7 @@ function render_tool_tra_han_tu_final_v11() {
                 lastItemInRow = currentItem;
             } else { break; }
         }
+        
         if (lastItemInRow.nextSibling) {
             container.insertBefore(panel, lastItemInRow.nextSibling);
         } else {
@@ -293,33 +371,23 @@ function render_tool_tra_han_tu_final_v11() {
         iframe.src = url;
 
         overlay.style.display = 'flex';
+        overlay.style.zIndex = '2147483647'; 
         document.body.style.overflow = 'hidden';
 
-        // LOGIC ẨN HEADER BÊN TRONG IFRAME (Nếu cùng domain)
         iframe.onload = function() {
             loader.style.display = 'none';
             iframe.style.opacity = '1';
             
             try {
-                // Thử truy cập vào document bên trong iframe
                 const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
-                
-                // Tạo thẻ style để ẩn các class Header phổ biến của WordPress
                 const style = innerDoc.createElement('style');
                 style.innerHTML = `
-                    header, #masthead, .site-header, .main-navigation, .navbar, #header {
-                        display: none !important;
-                    }
-                    /* Nếu cần ẩn thêm footer */
-                    /* footer, #colophon, .site-footer { display: none !important; } */
-                    
-                    /* Padding body nếu cần */
+                    header, #masthead, .site-header, .main-navigation, .navbar, #header { display: none !important; }
                     body { padding-top: 0 !important; margin-top: 0 !important; }
                 `;
                 innerDoc.head.appendChild(style);
             } catch(e) {
-                // Nếu khác domain thì không can thiệp được (Security Policy), bỏ qua
-                console.log("Không thể can thiệp CSS iframe do khác domain (CORS).");
+                console.log("CORS block.");
             }
         };
     }
@@ -329,7 +397,13 @@ function render_tool_tra_han_tu_final_v11() {
         const iframe = document.getElementById('hl-fs-iframe');
         overlay.style.display = 'none';
         iframe.src = '';
-        document.body.style.overflow = 'auto';
+        
+        const toolModal = document.getElementById('hl-tool-modal');
+        if (toolModal && toolModal.classList.contains('open')) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
     }
     </script>
     <?php
